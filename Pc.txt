@@ -98,6 +98,7 @@ game:GetService("StarterGui"):SetCore("SendNotification", {
     AddTeleportButton(TabTeleportIsland, "SandCastle Land", {1078.3050, 245.2001, -3335.6132})
     AddTeleportButton(TabTeleportIsland, "Caver Land", {-1094.7250, 356, 1719.1688})
     AddTeleportButton(TabTeleportIsland, "Rock Land", {4895, 398.751343, -7194, 1, 0, 0, 0, 1, 0, 0, 0, 1})
+    AddTeleportButton(TabTeleportIsland, "Marineford Land", {-3133.034912109375, 557.531005859375, -4087.6904296875})
 
 local function AddSniperToggle(tab, name)
     tab:AddToggle(name, {
@@ -332,75 +333,143 @@ local Section = TabSniperFruit:AddSection("Ultra Rare & Rare Fruit")
         end)
     end
 
-    local Players = game:GetService("Players")
-    local player = Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
-    local AutoDrinkEnabled2 = false
-    local autoDrinkThread2 = nil
+local character
+local humanoid
+local hrp
 
+local function refreshCharacter()
+    character = player.Character or player.CharacterAdded:Wait()
+    hrp = character:WaitForChild("HumanoidRootPart")
+    humanoid = character:WaitForChild("Humanoid")
+end
+refreshCharacter()
 
-    local drinkNames2 = {
-        "Cider+",
-        "Lemonade+",
-        "Juice+",
-        "Smoothie+"
-    }
+player.CharacterAdded:Connect(function(char)
+    character = char
+    hrp = char:WaitForChild("HumanoidRootPart")
+    humanoid = char:WaitForChild("Humanoid")
+    print("รีเฟรช character ใหม่หลังจากตาย")
 
-    local function realClickDrink(tool)
-        if not tool then return end
-        if tool:IsA("Tool") then
-            local humanoid = character:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid:EquipTool(tool)
-                task.wait(0.05)
-                if tool:FindFirstChildWhichIsA("RemoteEvent") then
+    if AutoDrinkEnabled2 then
+        task.wait(0.5)
+        startAutoDrink2()
+    end
+end)
+
+local AutoDrinkEnabled2 = false
+local autoDrinkThread2 = nil
+
+local drinkNames2 = {
+    "Cider+",
+    "Lemonade+",
+    "Juice+",
+    "Smoothie+"
+}
+
+local function realClickDrink2(tool)
+    if not tool then return end
+
+    if tool:IsA("Tool") then
+        if humanoid then
+            humanoid:EquipTool(tool)
+            task.wait(0.05)
+            local handle = tool:FindFirstChild("Handle")
+            if handle then
+                local clickDetector = handle:FindFirstChildWhichIsA("ClickDetector")
+                if clickDetector then
+                    pcall(fireclickdetector, clickDetector)
+                    print("ดื่ม Tool (ClickDetector): "..tool.Name)
+                elseif tool:FindFirstChildWhichIsA("RemoteEvent") then
                     tool:FindFirstChildWhichIsA("RemoteEvent"):FireServer()
+                    print("ดื่ม Tool (RemoteEvent): "..tool.Name)
                 else
                     pcall(function() tool:Activate() end)
+                    print("ดื่ม Tool (Activate): "..tool.Name)
                 end
-                print("ดื่มจริง: "..tool.Name)
             end
+        end
+    else
+        local clickDetector = tool:FindFirstChildWhichIsA("ClickDetector")
+        if clickDetector then
+            pcall(fireclickdetector, clickDetector)
+            print("ดื่ม Workspace: "..tool.Name)
+        end
+    end
+end
+
+function startAutoDrink2()
+    if autoDrinkThread2 then return end
+
+    for _, tool in ipairs(player.Backpack:GetChildren()) do
+        if table.find(drinkNames2, tool.Name) and humanoid then
+            humanoid:EquipTool(tool)
+        end
+    end
+    for _, tool in ipairs(character:GetChildren()) do
+        if table.find(drinkNames2, tool.Name) and humanoid then
+            humanoid:EquipTool(tool)
         end
     end
 
-    local function startAutoDrink2()
-        if autoDrinkThread2 then return end
-        autoDrinkThread2 = task.spawn(function()
-            while AutoDrinkEnabled2 do
-                for _, tool in ipairs(player.Backpack:GetChildren()) do
-                    if table.find(drinkNames2, tool.Name) then
-                        realClickDrink(tool)
-                        task.wait(0.1)
-                    end
+    autoDrinkThread2 = task.spawn(function()
+        while AutoDrinkEnabled2 do
+            for _, name in ipairs(drinkNames2) do
+                local drink = workspace:FindFirstChild(name)
+                if drink then
+                    realClickDrink2(drink)
+                    task.wait(0.01)
                 end
-
-                for _, tool in ipairs(character:GetChildren()) do
-                    if table.find(drinkNames2, tool.Name) then
-                        realClickDrink(tool)
-                        task.wait(0.1)
-                    end
-                end
-
-                task.wait(0.1)
             end
-            autoDrinkThread2 = nil
-        end)
+
+            for _, tool in ipairs(player.Backpack:GetChildren()) do
+                if table.find(drinkNames2, tool.Name) then
+                    realClickDrink2(tool)
+                    task.wait(0.01)
+                end
+            end
+
+            for _, tool in ipairs(character:GetChildren()) do
+                if table.find(drinkNames2, tool.Name) then
+                    realClickDrink2(tool)
+                    task.wait(0.01)
+                end
+            end
+
+            task.wait(0.01)
+        end
+        autoDrinkThread2 = nil
+    end)
+end
+
+function stopAutoDrink2()
+    AutoDrinkEnabled2 = false
+    if autoDrinkThread2 then
+        autoDrinkThread2 = nil
     end
 
-    TabJuice:AddToggle("AutoDrink2", {
-        Title = "Auto Drink Beverages",
-        Default = false,
-        Callback = function(state)
-            AutoDrinkEnabled2 = state
-            if state then
-                print("เริ่ม Auto Drink (Inventory Real Click) ✅")
-                startAutoDrink2()
-            else
-                print("หยุด Auto Drink (Inventory Real Click) ❌")
-            end
+    if humanoid and humanoid:FindFirstChildOfClass("Tool") then
+        humanoid:UnequipTools()
+    end
+end
+
+TabJuice:AddToggle("AutoDrink2", {
+    Title = "Auto Drink Beverages",
+    Default = false,
+    Callback = function(state)
+        if state then
+            AutoDrinkEnabled2 = true
+            print("เริ่ม Auto Drink ✅")
+            startAutoDrink2()
+        else
+            print("หยุด Auto Drink ❌")
+            stopAutoDrink2()
         end
-    })
+    end
+})
+
 
     player.CharacterAdded:Connect(function(char)
         character = char
@@ -1181,6 +1250,83 @@ TabMain:AddToggle("Noclip", {
             autoTrashThread = nil
         end)
     end
+
+    local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+local drinkNames = {
+    "Cider+",
+    "Lemonade+",
+    "Juice+",
+    "Smoothie+"
+}
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DrinkCheckerUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game:GetService("CoreGui") 
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(0, 300, 0, 150)
+label.Position = UDim2.new(0, 10, 0, 10)
+label.BackgroundColor3 = Color3.fromRGB(25,25,25)
+label.BackgroundTransparency = 0.3
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.TextScaled = true
+label.Font = Enum.Font.SourceSansBold
+label.Text = ""
+label.Visible = false
+label.Parent = screenGui
+
+local drinkCheckerEnabled = false
+local character = player.Character or player.CharacterAdded:Wait()
+
+local function updateDrinkUI()
+    local displayLines = {}
+    for _, drink in ipairs(drinkNames) do
+        local count = 0
+
+        for _, item in ipairs(player.Backpack:GetChildren()) do
+            if item.Name == drink then
+                count += 1
+            end
+        end
+
+        for _, item in ipairs(character:GetChildren()) do
+            if item.Name == drink then
+                count += 1
+            end
+        end
+        if count > 0 then
+            table.insert(displayLines, drink.." "..count)
+        end
+    end
+
+    label.Text = table.concat(displayLines, "\n")
+end
+
+RunService.RenderStepped:Connect(function()
+    if drinkCheckerEnabled then
+        character = player.Character or player.CharacterAdded:Wait()
+        updateDrinkUI()
+    end
+end)
+
+TabJuice:AddToggle("DrinkChecker", {
+    Title = "Check Juice UI",
+    Default = false,
+    Callback = function(state)
+        drinkCheckerEnabled = state
+        label.Visible = state
+        if state then
+            print("Check Open Realtime ✅")
+        else
+            print("Check Close Realtime ❌")
+        end
+    end
+})
+
 
     TabMixerV2:AddToggle("Auto Trash Drinks", {
         Title = "Auto Drop Fruit",

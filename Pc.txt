@@ -634,7 +634,7 @@ TabMixerV2:AddToggle("AutoMixFruit", {
             end
         end
     })
-
+    
     local ToggleQuestHaki = TabMain:AddToggle("AutoQuestHaki", {
     Title = "Auto Get Haki",
     Default = false,
@@ -1638,13 +1638,85 @@ local function runSpawnLoop()
     end
 end
 
-task.spawn(runSpawnLoop)
 
 TabMain:AddButton({
 Title = "Bounty Farm Point",
 Callback = function() teleportAFK({4519.38623046875, 217, 5781.06396484375}) end
 })
 
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+local AutoTrashEnabled = false
+local autoTrashThread = nil
+local trashNames = {"Compass"}
+
+TabMain:AddToggle("Auto Drop Compass", {
+    Title = "Auto Drop Compass",
+    Default = false,
+    Callback = function(Value)
+        AutoTrashEnabled = Value
+        if AutoTrashEnabled then
+            print("[AutoTrash] ON")
+            startAutoTrash()
+        else
+            print("[AutoTrash] OFF")
+        end
+    end
+})
+
+local function realDropTool(tool)
+    if not tool then return end
+    if tool:IsA("Tool") and humanoid then
+        humanoid:EquipTool(tool)
+        task.wait(0.05)
+
+        local remote = tool:FindFirstChildWhichIsA("RemoteEvent")
+        if remote then
+            remote:FireServer()
+        else
+            pcall(function() tool.Parent = workspace end)
+        end
+
+        print("ทิ้งของ: " .. tool.Name)
+    end
+end
+
+function startAutoTrash()
+    if autoTrashThread then return end
+    autoTrashThread = task.spawn(function()
+        while AutoTrashEnabled do
+            for _, tool in ipairs(player.Backpack:GetChildren()) do
+                if table.find(trashNames, tool.Name) then
+                    realDropTool(tool)
+                    task.wait(0.1)
+                end
+            end
+
+            for _, tool in ipairs(character:GetChildren()) do
+                if tool:IsA("Tool") and table.find(trashNames, tool.Name) then
+                    realDropTool(tool)
+                    task.wait(0.1)
+                end
+            end
+
+            task.wait(0.2)
+        end
+        autoTrashThread = nil
+    end)
+end
+
+player.CharacterAdded:Connect(function(char)
+    character = char
+    humanoid = char:WaitForChild("Humanoid")
+end)
+
+
+
+task.spawn(runSpawnLoop)
 Window:SelectTab(1)
 print("Script loaded: Fruit Mixer Hub (Complete)")
 SaveManager:SetLibrary(Fluent)

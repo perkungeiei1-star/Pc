@@ -99,6 +99,7 @@ game:GetService("StarterGui"):SetCore("SendNotification", {
     AddTeleportButton(TabTeleportIsland, "Caver Land", {-1094.7250, 356, 1719.1688})
     AddTeleportButton(TabTeleportIsland, "Rock Land", {4895, 398.751343, -7194, 1, 0, 0, 0, 1, 0, 0, 0, 1})
     AddTeleportButton(TabTeleportIsland, "Marineford Land", {-3133.034912109375, 557.531005859375, -4087.6904296875})
+    AddTeleportButton(TabTeleportIsland, "Use Boat TP AFK", {5036.73779296875, 220.18453979492188, 21985.28125})
 
 local function AddSniperToggle(tab, name)
     tab:AddToggle(name, {
@@ -1337,63 +1338,47 @@ TabJuice:AddToggle("DrinkChecker", {
         end
     })
 
-    local AutoMixEnabled = false
-    local autoMixThread = nil
+    local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
-    local function warpAndClickMixer(mixer)
-        if not hrp or not mixer then return end
+local function getHRP()
+    local char = player.Character or player.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart")
+end
 
-        hrp.CFrame = mixer.CFrame + Vector3.new(0, 3, 2)
-        task.wait(0.05)
-
-        local clickDetector = mixer:FindFirstChildWhichIsA("ClickDetector")
-        if clickDetector then
-            fireclickdetector(clickDetector)
-        end
-
-        local prompt = mixer:FindFirstChildOfClass("ProximityPrompt")
-        if prompt then
-            prompt:InputHoldBegin()
-            task.wait(0.2)
-            prompt:InputHoldEnd()
-        end
-
-        if hrp then
-            hrp.CFrame = CFrame.new(returnPosition)
-        end
+local function warpAndClick(part)
+    local hrp = getHRP()
+    if not hrp or not part then
+        warn("❌ หา HRP หรือ Part ไม่เจอ")
+        return
     end
 
-    local function startAutoMix()
-        if autoMixThread then return end
-        autoMixThread = task.spawn(function()
-            while AutoMixEnabled do
-                local kitchen = workspace:FindFirstChild("Island8") and workspace.Island8.Kitchen:GetChildren()[3]
-                if kitchen and kitchen:FindFirstChild("JuicingBowl") then
-                    local mixers = {
-                        kitchen.JuicingBowl:FindFirstChild("Mixer1"),
-                        kitchen.JuicingBowl:FindFirstChild("Mixer2")
-                    }
-                    for _, mixer in ipairs(mixers) do
-                        if mixer then
-                            warpAndClickMixer(mixer)
-                            task.wait(0.5)
-                        end
-                    end
-                end
-                task.wait(1)
-            end
-            autoMixThread = nil
+    hrp.CFrame = part.CFrame + Vector3.new(0, 3, 2)
+    task.wait(0.1)
+
+    local clickDetector = part:FindFirstChildWhichIsA("ClickDetector")
+    if clickDetector then
+        fireclickdetector(clickDetector)
+        print("✅ Clicked:", part.Name)
+    else
+        warn("⚠ ไม่มี ClickDetector ใน", part.Name)
+    end
+end
+
+TabMixerV2:AddButton({
+    Title = "TP Mixer Fruit",
+    Callback = function()
+        pcall(function()
+            local kitchen = workspace:WaitForChild("Island8"):WaitForChild("Kitchen")
+            local target = kitchen:GetChildren()[3]
+            local bowl = target:WaitForChild("JuicingBowl")
+
+            warpAndClick(bowl:FindFirstChild("Mixer1"))
+            task.wait(0.3)
+            warpAndClick(bowl:FindFirstChild("MixerMain"))
         end)
     end
-
-    TabMixerV2:AddToggle("AutoMixFruit", {
-        Title = "TP MixerFruit",
-        Default = false,
-        Callback = function(state)
-            AutoMixEnabled = state
-            if state then startAutoMix() end
-        end
-    })
+})
 
     local AutoRenameEnabled = false
 

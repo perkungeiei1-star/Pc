@@ -161,7 +161,7 @@ local Section = TabSniperFruit:AddSection("Ultra Rare & Rare Fruit")
         hrp.CFrame = obj.CFrame + Vector3.new(0,3,2)
         task.wait(0.1)
         if clickDetector then
-            for i=1,3 do fireclickdetector(clickDetector); task.wait(0.05) end
+            for i=1,3 do fireclickdetector(clickDetector); task.wait(0.01) end
         end
     end
 
@@ -185,7 +185,7 @@ local Section = TabSniperFruit:AddSection("Ultra Rare & Rare Fruit")
                     _G[key] = true
                     task.spawn(function()
                         while _G[key] do
-                            task.wait(0.2)
+                            task.wait(0.01)
                             pcall(function() ClickFruit(fruitName) end)
                         end
                     end)
@@ -1696,7 +1696,7 @@ local function stopAutoTrash()
 end
 
 TabMain:AddToggle("AutoTrashToggle", {
-    Title = "Auto Trash (ทิ้ง Compass)",
+    Title = "Auto Drop Compass (ทิ้ง Compass)",
     Default = false,
     Callback = function(Value)
         AutoTrashEnabled = Value
